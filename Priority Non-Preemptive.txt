@@ -1,0 +1,131 @@
+Priority Non-Preemptive:
+
+import java.util.Scanner;
+
+public class Priority {
+    int n;
+    int at[], bt[], pid[], pr[]; // arrival, burst, process id, priority
+    int wt[], tt[], completion[];
+    boolean finished[];
+    float avg_wt, avg_tt;
+    Scanner sc;
+
+    // Constructor must match class name
+    Priority() {
+        sc = new Scanner(System.in);
+        avg_wt = 0;
+        avg_tt = 0;
+    }
+
+    void input() {
+        System.out.print("Enter number of processes: ");
+        n = sc.nextInt();
+
+        at = new int[n];
+        bt = new int[n];
+        pid = new int[n];
+        pr = new int[n];
+        wt = new int[n];
+        tt = new int[n];
+        completion = new int[n];
+        finished = new boolean[n];
+
+        for (int i = 0; i < n; i++) {
+            pid[i] = i; // original id
+            System.out.println("\nProcess P[" + i + "]:");
+            System.out.print(" Enter arrival time: ");
+            at[i] = sc.nextInt();
+            System.out.print(" Enter burst time: ");
+            bt[i] = sc.nextInt();
+            System.out.print(" Enter priority (lower number = higher priority): ");
+            pr[i] = sc.nextInt();
+            finished[i] = false;
+        }
+    }
+
+    // Non-preemptive priority scheduling
+    void calc() {
+        int completed = 0;
+        int time = 0;
+
+        // advance time to earliest arrival if needed
+        int earliest = Integer.MAX_VALUE;
+        for (int i = 0; i < n; i++) if (at[i] < earliest) earliest = at[i];
+        if (earliest > 0 && earliest != Integer.MAX_VALUE) time = earliest;
+
+        while (completed < n) {
+            // find highest priority process among arrived & not finished
+            int idx = -1;
+            int bestPriority = Integer.MAX_VALUE;
+
+            for (int i = 0; i < n; i++) {
+                if (!finished[i] && at[i] <= time) {
+                    if (pr[i] < bestPriority) {
+                        bestPriority = pr[i];
+                        idx = i;
+                    } else if (pr[i] == bestPriority) {
+                        // Tie-breaker: if idx is not set, choose i
+                        if (idx == -1) {
+                            idx = i;
+                        } else {
+                            // tie-breaker: earlier arrival then lower pid
+                            if (at[i] < at[idx]) idx = i;
+                            else if (at[i] == at[idx] && i < idx) idx = i;
+                        }
+                    }
+                }
+            }
+
+            if (idx == -1) {
+                // no arrived process ready -> advance time
+                time++;
+                continue;
+            }
+
+            // run selected process to completion (non-preemptive)
+            int startTime = Math.max(time, at[idx]);
+            completion[idx] = startTime + bt[idx];
+            tt[idx] = completion[idx] - at[idx];
+            wt[idx] = tt[idx] - bt[idx];
+            if (wt[idx] < 0) wt[idx] = 0; // safety
+            time = completion[idx];
+            finished[idx] = true;
+            completed++;
+        }
+    }
+
+    void calc_avg() {
+        avg_wt = 0;
+        avg_tt = 0;
+        for (int i = 0; i < n; i++) {
+            avg_wt += wt[i];
+            avg_tt += tt[i];
+        }
+        avg_wt = avg_wt / n;
+        avg_tt = avg_tt / n;
+    }
+
+    void output() {
+        System.out.println("\n\nProcess\tArrival\tBurst\tPriority\tCompletion\tWaiting\tTurnaround");
+        for (int i = 0; i < n; i++) {
+            System.out.printf("P[%d]\t%7d\t%5d\t%8d\t%10d\t%7d\t%10d\n",
+                    pid[i], at[i], bt[i], pr[i], completion[i], wt[i], tt[i]);
+        }
+        System.out.printf("\nAverage waiting time = %.2f\n", avg_wt);
+        System.out.printf("Average turnaround time = %.2f\n", avg_tt);
+    }
+
+    public static void main(String[] args) {
+        Priority obj = new Priority();
+        obj.input();
+        obj.calc();
+        obj.calc_avg();
+        obj.output();
+        obj.sc.close();
+    }
+}
+
+
+Execution command:
+javac Priority.java
+java Priority

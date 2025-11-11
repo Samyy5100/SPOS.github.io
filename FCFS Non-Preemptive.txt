@@ -1,0 +1,118 @@
+FCFS Non-Preemptive:
+
+
+
+import java.util.Arrays;
+import java.util.Scanner;
+
+public class FCFS {
+    int n;
+    int at[], bt[], pid[];
+    int wt[], tt[], completion[];
+    float avg_wt, avg_tt;
+    Scanner sc;
+
+    FCFS() {
+        sc = new Scanner(System.in);
+        avg_wt = 0;
+        avg_tt = 0;
+    }
+
+    void input() {
+        System.out.print("Enter number of processes: ");
+        n = sc.nextInt();
+
+        at = new int[n];
+        bt = new int[n];
+        pid = new int[n];
+        wt = new int[n];
+        tt = new int[n];
+        completion = new int[n];
+
+        for (int i = 0; i < n; i++) {
+            System.out.println("\nProcess P[" + i + "]:");
+            System.out.print(" Enter arrival time: ");
+            at[i] = sc.nextInt();
+            System.out.print(" Enter burst time: ");
+            bt[i] = sc.nextInt();
+            pid[i] = i; // Keep original process ID
+        }
+
+        // Sort processes by arrival time (stable sort)
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (at[i] > at[j]) {
+                    swap(i, j);
+                }
+            }
+        }
+    }
+
+    private void swap(int i, int j) {
+        int tmp;
+
+        tmp = at[i];
+        at[i] = at[j];
+        at[j] = tmp;
+
+        tmp = bt[i];
+        bt[i] = bt[j];
+        bt[j] = tmp;
+
+        tmp = pid[i];
+        pid[i] = pid[j];
+        pid[j] = tmp;
+    }
+
+    void calc() {
+        // Compute completion, waiting, and turnaround times
+        int currentTime = 0;
+
+        for (int i = 0; i < n; i++) {
+            // CPU starts this process when it arrives or when previous finishes
+            int startTime = Math.max(currentTime, at[i]);
+            completion[i] = startTime + bt[i];
+            tt[i] = completion[i] - at[i]; // Turnaround = completion - arrival
+            wt[i] = tt[i] - bt[i];         // Waiting = turnaround - burst
+
+            currentTime = completion[i];   // Move time forward
+        }
+    }
+
+    void calc_avg() {
+        avg_wt = 0;
+        avg_tt = 0;
+
+        for (int i = 0; i < n; i++) {
+            avg_wt += wt[i];
+            avg_tt += tt[i];
+        }
+
+        avg_wt = avg_wt / n;
+        avg_tt = avg_tt / n;
+    }
+
+    void output() {
+        System.out.println("\n\nProcess\tArrival\tBurst\tCompletion\tWaiting\tTurnaround");
+        for (int i = 0; i < n; i++) {
+            System.out.printf("P[%d]\t%7d\t%5d\t%10d\t%7d\t%10d\n",
+                    pid[i], at[i], bt[i], completion[i], wt[i], tt[i]);
+        }
+        System.out.printf("\nAverage waiting time = %.2f\n", avg_wt);
+        System.out.printf("Average turnaround time = %.2f\n", avg_tt);
+    }
+
+    public static void main(String[] args) {
+        FCFS obj = new FCFS();
+        obj.input();
+        obj.calc();
+        obj.calc_avg();
+        obj.output();
+        obj.sc.close();
+    }
+}
+
+
+Execution command:
+javac WorstFit.java
+java WorstFit

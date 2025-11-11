@@ -1,0 +1,220 @@
+Pass-1
+
+
+import java.io.*;
+import java.util.*;
+
+class SymTab {
+    public static void main(String args[]) throws Exception {
+        if (args.length == 0) {
+            System.err.println("Usage: java SymTab <input.txt>");
+            return;
+        }
+
+        BufferedReader br = new BufferedReader(new FileReader(args[0]));
+        String line;
+        int lineCount = 0;
+        int LC = 0;
+
+        List<String[]> symbolTable = new ArrayList<>();
+        List<String[]> opTable = new ArrayList<>();
+        List<String[]> litTable = new ArrayList<>();
+        List<Integer> poolTable = new ArrayList<>();
+
+        System.out.println("__________________________________________________");
+
+        while ((line = br.readLine()) != null) {
+            String[] rawTokens = line.trim().isEmpty() ? new String[0] : line.trim().split("\\s+");
+
+            List<String> tokensList = new ArrayList<>();
+            for (String t : rawTokens)
+                if (!t.equals(""))
+                    tokensList.add(t);
+
+            String[] tokens = tokensList.toArray(new String[0]);
+
+            if (tokens.length == 0) {
+                System.out.println();
+                lineCount++;
+                continue;
+            }
+
+            // Print tokens
+            for (String t : tokens)
+                System.out.print(t + "\t");
+            System.out.println();
+
+            // START line handling
+            if (lineCount == 0) {
+                if (tokens.length >= 3 && tokens[1].equalsIgnoreCase("START")) {
+                    try {
+                        LC = Integer.parseInt(tokens[2]);
+                    } catch (NumberFormatException nfe) {
+                        LC = 0;
+                    }
+                } else {
+                    LC = 0;
+                }
+            } else {
+                // SYMBOL TABLE entry
+                if (tokens.length >= 2 && !tokens[0].equals("-") && !tokens[0].equals("")) {
+                    String[] symEntry = new String[3];
+                    symEntry[0] = tokens[0];
+                    symEntry[1] = Integer.toString(LC);
+                    symEntry[2] = "1";
+                    symbolTable.add(symEntry);
+                } else if (tokens.length >= 2 &&
+                        (tokens[1].equalsIgnoreCase("DS") || tokens[1].equalsIgnoreCase("DC"))) {
+                    if (tokens.length >= 1 && !tokens[0].equals("") && !tokens[0].equals("-")) {
+                        String[] symEntry = new String[3];
+                        symEntry[0] = tokens[0];
+                        symEntry[1] = Integer.toString(LC);
+                        symEntry[2] = "1";
+                        symbolTable.add(symEntry);
+                    }
+                }
+
+                // LITERAL TABLE entry
+                for (int ti = 1; ti < tokens.length; ti++) {
+                    String opnd = tokens[ti];
+                    if (opnd != null && opnd.length() > 0 && opnd.charAt(0) == '=') {
+                        String[] litEntry = new String[2];
+                        litEntry[0] = opnd;
+                        litEntry[1] = Integer.toString(LC);
+                        litTable.add(litEntry);
+                        break;
+                    }
+                }
+
+                // OPCODE TABLE entry
+                if (tokens.length >= 2) {
+                    String mnemonic = tokens[1];
+                    String mclass = "IS";
+                    String info = "(04,1)";
+
+                    if (mnemonic.equalsIgnoreCase("START") ||
+                        mnemonic.equalsIgnoreCase("END") ||
+                        mnemonic.equalsIgnoreCase("ORIGIN") ||
+                        mnemonic.equalsIgnoreCase("EQU") ||
+                        mnemonic.equalsIgnoreCase("LTORG")) {
+                        mclass = "AD";
+                        info = "R11";
+                    } else if (mnemonic.equalsIgnoreCase("DS") ||
+                               mnemonic.equalsIgnoreCase("DC")) {
+                        mclass = "DL";
+                        info = "R7";
+                    }
+
+                    String[] opEntry = new String[3];
+                    opEntry[0] = mnemonic;
+                    opEntry[1] = mclass;
+                    opEntry[2] = info;
+                    opTable.add(opEntry);
+                }
+
+                // LOCATION COUNTER update
+                if (tokens.length >= 2 && tokens[1].equalsIgnoreCase("DS")) {
+                    int size = 1;
+                    if (tokens.length >= 3) {
+                        try {
+                            size = Integer.parseInt(tokens[2]);
+                            if (size <= 0) size = 1;
+                        } catch (NumberFormatException nfe) {
+                            size = 1;
+                        }
+                    }
+                    LC += size;
+                } else {
+                    LC++;
+                }
+            }
+            lineCount++;
+        }
+
+        System.out.println("__________________________________________________");
+
+        // POOL TABLE creation
+        if (!litTable.isEmpty()) {
+            poolTable.clear();
+            int lastAddr = -9999;
+
+            for (int i = 0; i < litTable.size(); i++) {
+                String addrStr = litTable.get(i)[1];
+                int addr = -1;
+
+                try {
+                    addr = Integer.parseInt(addrStr);
+                } catch (NumberFormatException ignored) {}
+
+                if (i == 0) {
+                    poolTable.add(1);
+                    lastAddr = addr;
+                } else {
+                    if (addr != -1 && lastAddr != -9999 && addr > lastAddr + 1) {
+                        poolTable.add(i + 1);
+                    }
+                    lastAddr = addr;
+                }
+            }
+        }
+
+        // SYMBOL TABLE display
+        System.out.println("\n\n\tSYMBOL TABLE");
+        System.out.println("--------------------------");
+        System.out.println("SYMBOL\tADDRESS\tLENGTH");
+        System.out.println("--------------------------");
+        for (String[] s : symbolTable) {
+            System.out.println(s[0] + "\t" + s[1] + "\t" + s[2]);
+        }
+        System.out.println("--------------------------");
+
+        // OPCODE TABLE display
+        System.out.println("\n\n\tOPCODE TABLE");
+        System.out.println("----------------------------");
+        System.out.println("MNEMONIC\tCLASS\tINFO");
+        System.out.println("----------------------------");
+        for (String[] o : opTable) {
+            System.out.println(o[0] + "\t\t" + o[1] + "\t" + o[2]);
+        }
+        System.out.println("----------------------------");
+
+        // LITERAL TABLE display
+        System.out.println("\n\n\tLITERAL TABLE");
+        System.out.println("-----------------");
+        System.out.println("LITERAL\tADDRESS");
+        System.out.println("-----------------");
+        for (String[] l : litTable) {
+            System.out.println(l[0] + "\t" + l[1]);
+        }
+        System.out.println("------------------");
+
+        // POOL TABLE display
+        System.out.println("\n\n\tPOOL TABLE");
+        System.out.println("-----------------");
+        System.out.println("LITERAL NUMBER");
+        System.out.println("-----------------");
+        for (Integer p : poolTable) {
+            System.out.println(p);
+        }
+        System.out.println("------------------");
+
+        br.close();
+    }
+}
+
+
+Input Symbols:
+START 100
+MOVER AREG, ='5'
+ADD BREG, ONE
+SUB CREG, ='1'
+MULT DREG, TWO
+LTORG -
+ONE DS 1
+TWO DC 2
+END -
+
+
+Execution command:
+javac SymTab.java
+java SymTab input.txt

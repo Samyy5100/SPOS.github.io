@@ -1,0 +1,138 @@
+Priority Preemptive:
+
+
+import java.util.*;
+
+class ProcP {
+    int id, arrival, burst, rem, completion, waiting, tat;
+    int priority; // Lower number → higher priority
+    String name;
+    boolean finished;
+
+    ProcP(int id, int arrival, int burst, int priority, String name) {
+        this.id = id;
+        this.arrival = arrival;
+        this.burst = burst;
+        this.rem = burst;
+        this.priority = priority;
+        this.name = name;
+        this.finished = false;
+    }
+}
+
+public class PriorityP {
+    static Scanner sc = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        List<ProcP> procs = readProcesses();
+        preemptivePriority(procs);
+        printResult(procs);
+    }
+
+    static List<ProcP> readProcesses() {
+        System.out.print("Enter number of processes: ");
+        int n = sc.nextInt();
+
+        List<ProcP> list = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            System.out.println("\nProcess P[" + i + "]:");
+            System.out.print(" Enter arrival time: ");
+            int at = sc.nextInt();
+
+            System.out.print(" Enter burst time: ");
+            int bt = sc.nextInt();
+
+            System.out.print(" Enter priority (lower number = higher priority): ");
+            int pr = sc.nextInt();
+
+            System.out.print(" Enter name (single token): ");
+            String name = sc.next();
+
+            list.add(new ProcP(i, at, bt, pr, name));
+        }
+        return list;
+    }
+
+    // Preemptive Priority Scheduling: at each time unit, pick process with highest priority
+    static void preemptivePriority(List<ProcP> list) {
+        int n = list.size();
+
+        // Sort by arrival to find earliest
+        Collections.sort(list, Comparator.comparingInt(p -> p.arrival));
+
+        int time = 0;
+        if (n > 0 && list.get(0).arrival > 0)
+            time = list.get(0).arrival;
+
+        int completed = 0;
+
+        while (completed < n) {
+            // Find arrived process with highest priority (lowest number)
+            int idx = -1;
+            int bestPr = Integer.MAX_VALUE;
+
+            for (int i = 0; i < n; i++) {
+                ProcP p = list.get(i);
+                if (!p.finished && p.arrival <= time && p.rem > 0) {
+                    if (p.priority < bestPr) {
+                        bestPr = p.priority;
+                        idx = i;
+                    } else if (p.priority == bestPr) {
+                        // Tie-breaker: earlier arrival → lower ID
+                        ProcP best = list.get(idx);
+                        if (p.arrival < best.arrival ||
+                            (p.arrival == best.arrival && p.id < best.id)) {
+                            idx = i;
+                        }
+                    }
+                }
+            }
+
+            // No ready process → advance time
+            if (idx == -1) {
+                time++;
+                continue;
+            }
+
+            // Execute for one time unit
+            ProcP cur = list.get(idx);
+            cur.rem--;
+            time++;
+
+            // If finished, set completion metrics
+            if (cur.rem == 0) {
+                cur.finished = true;
+                completed++;
+                cur.completion = time;
+                cur.tat = cur.completion - cur.arrival;
+                cur.waiting = cur.tat - cur.burst;
+                if (cur.waiting < 0) cur.waiting = 0;
+            }
+        }
+
+        // Restore original order by ID for printing
+        list.sort(Comparator.comparingInt(p -> p.id));
+    }
+
+    static void printResult(List<ProcP> list) {
+        System.out.println("\n\nName\tID\tArrival\tBurst\tPriority\tCompletion\tWaiting\tTurnaround");
+
+        double sumW = 0, sumT = 0;
+        for (ProcP p : list) {
+            System.out.printf("%s\tP[%d]\t%6d\t%5d\t%8d\t%10d\t%7d\t%10d\n",
+                    p.name, p.id, p.arrival, p.burst, p.priority, p.completion, p.waiting, p.tat);
+            sumW += p.waiting;
+            sumT += p.tat;
+        }
+
+        int n = list.size();
+        System.out.printf("\nAverage waiting time = %.2f\n", (sumW / n));
+        System.out.printf("Average turnaround time = %.2f\n", (sumT / n));
+    }
+}
+
+
+Execution command:
+javac PriorityP.java
+java PriorityP

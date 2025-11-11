@@ -1,0 +1,85 @@
+Name- Asmit Sachin Joshi
+Roll no- 47
+
+Practical no-3
+//Implementation of Dynamic Link Library
+
+----------------------
+Main.cpp
+----------------------
+#include <iostream>
+#include "MathLibrary.h"
+using namespace std;
+
+int main() {
+    cout << "Add: " << add(4,2) << endl;
+    cout << "Subtract: " << subtract(4,2) << endl;
+    cout << "Multiplication: " << multiply(4,2) << endl;
+    cout << "Square: " << square(4) << endl;
+    cout << "Divide: " << divide(4,2) << endl;
+    cout << "Percent: " << percent(80,100) << "%" << endl;
+    return 0;
+}
+
+----------------------
+MathLibrary.cpp
+----------------------
+#include "MathLibrary.h"
+
+int add(int a, int b) {
+    return a + b;
+}
+
+int subtract(int a, int b) {
+    return a - b;
+}
+
+int multiply(int a, int b) {
+    return a * b;
+}
+
+int divide(int a, int b) {
+    return a / b;
+}
+
+int square(int a) {
+    return a * a;
+}
+
+float percent(float a, float b) {
+    return (a / b) * 100;
+}
+
+----------------------
+MathLibrary.h
+----------------------
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int add(int a, int b);
+int subtract(int a, int b);
+int multiply(int a, int b);
+int divide(int a, int b);
+int square(int a);
+float percent(float a, float b);
+
+#ifdef __cplusplus
+}
+#endif
+
+----------------------
+Output (Terminal)
+----------------------
+$ g++ -fPIC -c MathLibrary.cpp -o MathLibrary.o
+$ g++ -shared -o libmath.so MathLibrary.o
+$ g++ main.cpp -L. -lmath -o main
+$ LD_LIBRARY_PATH=. ./main
+
+Output:
+Add: 6
+Subtract: 2
+Mult: 8
+

@@ -1,0 +1,147 @@
+SJF Non-Preemptive:
+
+
+import java.util.*;
+
+class ProcSJF {
+    int id, arrival, burst;
+    int completion, waiting, tat;
+    String name;
+    boolean finished;
+
+    ProcSJF(int id, int arrival, int burst, String name) {
+        this.id = id;
+        this.arrival = arrival;
+        this.burst = burst;
+        this.name = name;
+        this.finished = false;
+    }
+}
+
+public class SJFNP {
+    static Scanner sc = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        List<ProcSJF> list = readProcesses();
+        sjfNonPreemptive(list);
+        printResult(list);
+    }
+
+    static List<ProcSJF> readProcesses() {
+        System.out.print("Enter number of processes: ");
+        int n = sc.nextInt();
+        List<ProcSJF> list = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            System.out.println("Process P[" + i + "]:");
+            System.out.print(" Enter arrival time: ");
+            int at = sc.nextInt();
+            System.out.print(" Enter burst time: ");
+            int bt = sc.nextInt();
+            System.out.print(" Enter name (single token): ");
+            String name = sc.next();
+            list.add(new ProcSJF(i, at, bt, name));
+        }
+        return list;
+    }
+
+    static void sjfNonPreemptive(List<ProcSJF> list) {
+        int n = list.size();
+
+        // Work on a copy sorted by arrival to choose shortest among arrived processes
+        List<ProcSJF> arr = new ArrayList<>();
+        for (ProcSJF p : list) arr.add(new ProcSJF(p.id, p.arrival, p.burst, p.name));
+
+        // Sort by arrival time to ease searching
+        Collections.sort(arr, Comparator.comparingInt(p -> p.arrival));
+
+        int completed = 0;
+        int time = 0;
+        if (n > 0 && arr.get(0).arrival > 0) time = arr.get(0).arrival;
+
+        boolean[] done = new boolean[n];
+
+        while (completed < n) {
+            // find index of shortest burst among arrived and not done
+            int idx = -1;
+            int minBurst = Integer.MAX_VALUE;
+
+            for (int i = 0; i < n; i++) {
+                ProcSJF p = arr.get(i);
+                if (!done[i] && p.arrival <= time) {
+                    if (p.burst < minBurst) {
+                        minBurst = p.burst;
+                        idx = i;
+                    } else if (p.burst == minBurst) {
+                        // tie-breaker: earlier arrival then lower id
+                        if (idx == -1) {
+                            idx = i;
+                        } else if (p.arrival < arr.get(idx).arrival) {
+                            idx = i;
+                        } else if (p.arrival == arr.get(idx).arrival && p.id < arr.get(idx).id) {
+                            idx = i;
+                        }
+                    }
+                }
+            }
+
+            if (idx == -1) {
+                // no process has arrived yet -> advance time to next arrival (if any)
+                int nextArrival = Integer.MAX_VALUE;
+                for (int i = 0; i < n; i++) {
+                    if (!done[i] && arr.get(i).arrival < nextArrival) nextArrival = arr.get(i).arrival;
+                }
+                if (nextArrival == Integer.MAX_VALUE) {
+                    // nothing left (shouldn't happen if completed < n), but guard anyway
+                    break;
+                }
+                time = nextArrival;
+                continue;
+            }
+
+            ProcSJF cur = arr.get(idx);
+            cur.waiting = time - cur.arrival;
+            if (cur.waiting < 0) cur.waiting = 0;
+            cur.completion = time + cur.burst;
+            cur.tat = cur.completion - cur.arrival;
+            time = cur.completion;
+            done[idx] = true;
+            completed++;
+        }
+
+        // copy results back to original list by id
+        Map<Integer, ProcSJF> map = new HashMap<>();
+        for (ProcSJF p : arr) map.put(p.id, p);
+        for (ProcSJF p : list) {
+            ProcSJF r = map.get(p.id);
+            if (r != null) {
+                p.completion = r.completion;
+                p.waiting = r.waiting;
+                p.tat = r.tat;
+            }
+        }
+    }
+
+    static void printResult(List<ProcSJF> list) {
+        System.out.println("\n\nName\tID\tArrival\tBurst\tCompletion\tWaiting\tTurnaround");
+        double sumW = 0, sumT = 0;
+        for (ProcSJF p : list) {
+            System.out.printf("%s\tP[%d]\t%6d\t%5d\t%10d\t%7d\t%10d\n",
+                    p.name, p.id, p.arrival, p.burst, p.completion, p.waiting, p.tat);
+            sumW += p.waiting;
+            sumT += p.tat;
+        }
+        int n = list.size();
+        if (n > 0) {
+            System.out.printf("\nAverage waiting time = %.2f\n", (sumW / n));
+            System.out.printf("Average turnaround time = %.2f\n", (sumT / n));
+        } else {
+            System.out.println("\nNo processes to compute averages.");
+        }
+    }
+}
+
+
+Execution command:
+javac SJFNP.java
+java SJFNP

@@ -1,0 +1,61 @@
+BestFit:
+
+import java.util.Arrays;
+
+public class BestFit {
+    public static void main(String[] args) {
+        int[] blockSize = {100, 500, 200, 300, 600};
+        int[] processSize = {212, 417, 112, 426};
+        int[] allocation = new int[processSize.length];
+
+        // Initialize all allocations to -1 (not allocated)
+        Arrays.fill(allocation, -1);
+
+        // Copy of block sizes for updating after each allocation
+        int[] tempBlockSize = Arrays.copyOf(blockSize, blockSize.length);
+
+        // ---------- Best Fit Logic ----------
+        for (int i = 0; i < processSize.length; i++) {
+            int bestBlockIndex = -1;
+
+            // Find the smallest block that can fit the process
+            for (int j = 0; j < tempBlockSize.length; j++) {
+                if (tempBlockSize[j] >= processSize[i]) {
+                    if (bestBlockIndex == -1 || tempBlockSize[j] < tempBlockSize[bestBlockIndex]) {
+                        bestBlockIndex = j;
+                    }
+                }
+            }
+
+            // Allocate if a suitable block was found
+            if (bestBlockIndex != -1) {
+                allocation[i] = bestBlockIndex;
+                tempBlockSize[bestBlockIndex] -= processSize[i];
+            }
+        }
+
+        // ---------- Output ----------
+        System.out.println("\n--- Best Fit Memory Allocation ---");
+        System.out.println("Process No.\tProcess Size\tBlock No.");
+        for (int i = 0; i < processSize.length; i++) {
+            System.out.print((i + 1) + "\t\t" + processSize[i] + "\t\t");
+            if (allocation[i] != -1)
+                System.out.println(allocation[i] + 1);
+            else
+                System.out.println("Not Allocated");
+        }
+
+        // ---------- Updated Block Status ----------
+        System.out.println("\nUpdated Block Sizes After Allocation:");
+        for (int i = 0; i < tempBlockSize.length; i++) {
+            System.out.println("Block " + (i + 1) + ": " + tempBlockSize[i]);
+        }
+    }
+}
+
+
+
+
+Execution command:
+javac BestFit.java
+java BestFit

@@ -1,0 +1,137 @@
+SJF(SRTF) Preemptive:
+
+import java.util.Scanner;
+
+public class SJFP {
+    int n;
+    int at[], bt[], rem[], comp[], wt[], tt[];
+    boolean finished[];
+    float avg_wt, avg_tt;
+    Scanner sc;
+
+    // Constructor (must match class name)
+    SJFP() {
+        sc = new Scanner(System.in);
+        avg_wt = 0;
+        avg_tt = 0;
+    }
+
+    void input() {
+        System.out.print("Enter number of processes: ");
+        n = sc.nextInt();
+
+        at = new int[n];
+        bt = new int[n];
+        rem = new int[n];
+        comp = new int[n];
+        wt = new int[n];
+        tt = new int[n];
+        finished = new boolean[n];
+
+        for (int i = 0; i < n; i++) {
+            System.out.println("\nProcess P[" + i + "]:");
+            System.out.print(" Enter arrival time: ");
+            at[i] = sc.nextInt();
+            System.out.print(" Enter burst time: ");
+            bt[i] = sc.nextInt();
+            rem[i] = bt[i]; // remaining time initially = burst time
+            finished[i] = false;
+        }
+    }
+
+    void calc() {
+        int completedCount = 0;
+        int time = 0;
+
+        int INF = Integer.MAX_VALUE;
+        // If there are no processes arriving at time 0, advance time to earliest arrival
+        int earliestArrival = INF;
+        for (int i = 0; i < n; i++)
+            if (at[i] < earliestArrival)
+                earliestArrival = at[i];
+        if (earliestArrival > 0 && earliestArrival != INF)
+            time = earliestArrival;
+
+        while (completedCount < n) {
+            // pick process with shortest remaining time among arrived & not finished
+            int idx = -1;
+            int minRem = INF;
+
+            for (int i = 0; i < n; i++) {
+                if (!finished[i] && at[i] <= time && rem[i] > 0) {
+                    if (rem[i] < minRem) {
+                        minRem = rem[i];
+                        idx = i;
+                    } else if (rem[i] == minRem) {
+                        // tie-breaker: choose earlier arrival, then lower PID
+                        if (idx == -1) {
+                            idx = i;
+                        } else if (at[i] < at[idx]) {
+                            idx = i;
+                        } else if (at[i] == at[idx] && i < idx) {
+                            idx = i;
+                        }
+                    }
+                }
+            }
+
+            if (idx == -1) {
+                // no process has arrived yet or all arrived ones are finished -> advance time
+                time++;
+                continue;
+            }
+
+            // execute idx for 1 time unit (preemptive SRTF)
+            rem[idx]--;
+            time++;
+
+            // if process finished now, record completion and compute waiting & turnaround
+            if (rem[idx] == 0) {
+                finished[idx] = true;
+                completedCount++;
+                comp[idx] = time;                           // completion time = current time
+                tt[idx] = comp[idx] - at[idx];              // turnaround = completion - arrival
+                wt[idx] = tt[idx] - bt[idx];                // waiting = turnaround - burst
+                if (wt[idx] < 0) wt[idx] = 0;               // safety (shouldn't usually happen)
+            }
+        }
+    }
+
+    void calc_avg() {
+        avg_wt = 0;
+        avg_tt = 0;
+        for (int i = 0; i < n; i++) {
+            avg_wt += wt[i];
+            avg_tt += tt[i];
+        }
+        avg_wt = avg_wt / n;
+        avg_tt = avg_tt / n;
+    }
+
+    void output() {
+        System.out.println("\n\nProcess\tArrival\tBurst\tCompletion\tWaiting\tTurnaround");
+        for (int i = 0; i < n; i++) {
+            System.out.printf("P[%d]\t%7d\t%5d\t%10d\t%7d\t%10d\n",
+                    i, at[i], bt[i], comp[i], wt[i], tt[i]);
+        }
+        System.out.printf("\nAverage waiting time = %.2f\n", avg_wt);
+        System.out.printf("Average turnaround time = %.2f\n", avg_tt);
+    }
+
+    public static void main(String[] args) {
+        SJFP obj = new SJFP();
+        obj.input();
+        obj.calc();
+        obj.calc_avg();
+        obj.output();
+        obj.sc.close();
+    }
+}
+
+
+
+
+Execution command:
+
+javac SJFP.java
+java SJFP
