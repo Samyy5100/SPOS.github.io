@@ -1,0 +1,207 @@
+FCFS + RR :-
+
+import java.util.*;
+
+public class CPU_Scheduling {
+    Scanner sc = new Scanner(System.in);
+
+    // ============= MAIN MENU =============
+    public static void main(String[] args) {
+        CPU_Scheduling scheduler = new CPU_Scheduling();
+        scheduler.menu();
+    }
+
+    void menu() {
+        System.out.println("----- CPU Scheduling Algorithms -----");
+        System.out.println("1. FCFS (First Come First Serve)");
+        System.out.println("2. Round Robin (Preemptive)");
+        System.out.print("Enter your choice (1 or 2): ");
+        int choice = sc.nextInt();
+
+        switch (choice) {
+            case 1:
+                FCFS();
+                break;
+            case 2:
+                RoundRobin();
+                break;
+            default:
+                System.out.println("Invalid choice! Please enter 1 or 2.");
+        }
+    }
+
+    // ================= FCFS SCHEDULING =================
+    void FCFS() {
+        int n;
+        int[] at, bt, pid, wt, tt, completion;
+        float avg_wt = 0, avg_tt = 0;
+
+        System.out.print("Enter number of processes: ");
+        n = sc.nextInt();
+
+        at = new int[n];
+        bt = new int[n];
+        pid = new int[n];
+        wt = new int[n];
+        tt = new int[n];
+        completion = new int[n];
+
+        for (int i = 0; i < n; i++) {
+            System.out.println("\nProcess P[" + i + "]:");
+            System.out.print(" Enter arrival time: ");
+            at[i] = sc.nextInt();
+            System.out.print(" Enter burst time: ");
+            bt[i] = sc.nextInt();
+            pid[i] = i;
+        }
+
+        // Sort by arrival time
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (at[i] > at[j]) {
+                    int temp;
+                    temp = at[i]; at[i] = at[j]; at[j] = temp;
+                    temp = bt[i]; bt[i] = bt[j]; bt[j] = temp;
+                    temp = pid[i]; pid[i] = pid[j]; pid[j] = temp;
+                }
+            }
+        }
+
+        // Calculate Completion, Waiting, Turnaround
+        int currentTime = 0;
+        for (int i = 0; i < n; i++) {
+            int startTime = Math.max(currentTime, at[i]);
+            completion[i] = startTime + bt[i];
+            tt[i] = completion[i] - at[i];
+            wt[i] = tt[i] - bt[i];
+            currentTime = completion[i];
+        }
+
+        // Calculate averages
+        for (int i = 0; i < n; i++) {
+            avg_wt += wt[i];
+            avg_tt += tt[i];
+        }
+        avg_wt /= n;
+        avg_tt /= n;
+
+        // Output
+        System.out.println("\n----- FCFS Scheduling Result -----");
+        System.out.println("Process\tArrival\tBurst\tCompletion\tWaiting\tTurnaround");
+        for (int i = 0; i < n; i++) {
+            System.out.printf("P[%d]\t%7d\t%5d\t%10d\t%7d\t%10d\n",
+                    pid[i], at[i], bt[i], completion[i], wt[i], tt[i]);
+        }
+        System.out.printf("\nAverage Waiting Time = %.2f", avg_wt);
+        System.out.printf("\nAverage Turnaround Time = %.2f\n", avg_tt);
+    }
+
+    // ================= ROUND ROBIN (PREEMPTIVE) =================
+    void RoundRobin() {
+        int n;
+        int[] at, bt, rem, comp, wt, tt;
+        boolean[] added;
+        int ts;
+        float avg_wt = 0, avg_tt = 0;
+
+        System.out.print("Enter number of processes: ");
+        n = sc.nextInt();
+
+        at = new int[n];
+        bt = new int[n];
+        rem = new int[n];
+        comp = new int[n];
+        wt = new int[n];
+        tt = new int[n];
+        added = new boolean[n];
+
+        for (int i = 0; i < n; i++) {
+            System.out.println("\nProcess P[" + i + "]:");
+            System.out.print(" Enter arrival time: ");
+            at[i] = sc.nextInt();
+            System.out.print(" Enter burst time: ");
+            bt[i] = sc.nextInt();
+            rem[i] = bt[i];
+            added[i] = false;
+        }
+
+        System.out.print("\nEnter time slice (quantum): ");
+        ts = sc.nextInt();
+
+        Queue<Integer> q = new LinkedList<>();
+        int time = 0, completed = 0;
+
+        // Find earliest arrival time
+        int earliest = Integer.MAX_VALUE;
+        for (int i = 0; i < n; i++)
+            if (at[i] < earliest)
+                earliest = at[i];
+        if (earliest > 0) time = earliest;
+
+        // Add initial processes
+        for (int i = 0; i < n; i++) {
+            if (!added[i] && at[i] <= time) {
+                q.add(i);
+                added[i] = true;
+            }
+        }
+
+        while (completed < n) {
+            if (q.isEmpty()) {
+                int nextArrival = Integer.MAX_VALUE;
+                for (int i = 0; i < n; i++) {
+                    if (!added[i] && at[i] < nextArrival)
+                        nextArrival = at[i];
+                }
+                time = nextArrival;
+                for (int i = 0; i < n; i++) {
+                    if (!added[i] && at[i] <= time) {
+                        q.add(i);
+                        added[i] = true;
+                    }
+                }
+                continue;
+            }
+
+            int idx = q.poll();
+            int exec = Math.min(ts, rem[idx]);
+            rem[idx] -= exec;
+            time += exec;
+
+            for (int i = 0; i < n; i++) {
+                if (!added[i] && at[i] <= time) {
+                    q.add(i);
+                    added[i] = true;
+                }
+            }
+
+            if (rem[idx] == 0) {
+                completed++;
+                comp[idx] = time;
+                tt[idx] = comp[idx] - at[idx];
+                wt[idx] = tt[idx] - bt[idx];
+                if (wt[idx] < 0) wt[idx] = 0;
+            } else {
+                q.add(idx);
+            }
+        }
+
+        // Calculate averages
+        for (int i = 0; i < n; i++) {
+            avg_wt += wt[i];
+            avg_tt += tt[i];
+        }
+        avg_wt /= n;
+        avg_tt /= n;
+
+        // Output
+        System.out.println("\n----- Round Robin (Preemptive) Result -----");
+        System.out.println("Process\tArrival\tBurst\tCompletion\tWaiting\tTurnaround");
+        for (int i = 0; i < n; i++) {
+            System.out.printf("P[%d]\t%7d\t%5d\t%10d\t%7d\t%10d\n",
+                    i, at[i], bt[i], comp[i], wt[i], tt[i]);
+        }
+        System.out.printf("\nAverage Waiting Time = %.2f", avg_wt);
+        System.out.printf("\nAverage Turnaround Time = %.2f\n", avg_tt);
+    }
+}
