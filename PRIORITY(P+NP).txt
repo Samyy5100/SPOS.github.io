@@ -1,0 +1,204 @@
+PRIORITY(P+NP):- 
+
+import java.util.*;
+
+public class PriorityCombined {
+    static Scanner sc = new Scanner(System.in);
+
+    // Use a custom process class name that won't conflict with java.lang.Process
+    static class Proc {
+        int id, arrival, burst, rem, priority;
+        int completion, waiting, tat;
+        boolean finished;
+
+        Proc(int id, int arrival, int burst, int priority) {
+            this.id = id;
+            this.arrival = arrival;
+            this.burst = burst;
+            this.rem = burst;
+            this.priority = priority;
+            this.finished = false;
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println("=== PRIORITY SCHEDULING ===");
+        System.out.println("1. Non-Preemptive Priority");
+        System.out.println("2. Preemptive Priority");
+        System.out.print("Enter your choice (1 or 2): ");
+        int choice = readInt();
+
+        List<Proc> processes = readProcesses();
+
+        if (choice == 1) {
+            nonPreemptive(processes);
+        } else if (choice == 2) {
+            preemptive(processes);
+        } else {
+            System.out.println("Invalid choice. Exiting.");
+            return;
+        }
+
+        printResult(processes);
+    }
+
+    static List<Proc> readProcesses() {
+        System.out.print("Enter number of processes: ");
+        int n = readInt();
+        List<Proc> list = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            System.out.println("\nProcess P[" + i + "]:");
+            System.out.print(" Enter arrival time: ");
+            int at = readInt();
+            System.out.print(" Enter burst time: ");
+            int bt = readInt();
+            System.out.print(" Enter priority (lower number = higher priority): ");
+            int pr = readInt();
+            list.add(new Proc(i, at, bt, pr));
+        }
+        return list;
+    }
+
+    // Non-preemptive priority scheduling
+    static void nonPreemptive(List<Proc> list) {
+        int n = list.size();
+        int completed = 0;
+
+        // Sort by arrival to help find earliest arrival
+        list.sort(Comparator.comparingInt(p -> p.arrival));
+
+        // time initialization: jump to earliest arrival if necessary
+        int time = 0;
+        if (n > 0 && list.get(0).arrival > 0) time = list.get(0).arrival;
+
+        while (completed < n) {
+            int idx = -1;
+            int bestPriority = Integer.MAX_VALUE;
+
+            // Select highest priority (lowest number) among arrived & not finished
+            for (int i = 0; i < n; i++) {
+                Proc p = list.get(i);
+                if (!p.finished && p.arrival <= time) {
+                    if (p.priority < bestPriority) {
+                        bestPriority = p.priority;
+                        idx = i;
+                    } else if (p.priority == bestPriority) {
+                        // tie-breaker: earlier arrival then lower id
+                        Proc curBest = (idx == -1) ? null : list.get(idx);
+                        if (curBest == null || p.arrival < curBest.arrival ||
+                            (p.arrival == curBest.arrival && p.id < curBest.id)) {
+                            idx = i;
+                        }
+                    }
+                }
+            }
+
+            if (idx == -1) {
+                // no ready process -> advance time to next arrival (more efficient than time++)
+                int nextArrival = Integer.MAX_VALUE;
+                for (Proc p : list) if (!p.finished && p.arrival < nextArrival) nextArrival = p.arrival;
+                // If nextArrival is still MAX_VALUE, break to avoid infinite loop
+                if (nextArrival == Integer.MAX_VALUE) break;
+                time = Math.max(time, nextArrival);
+                continue;
+            }
+
+            Proc cur = list.get(idx);
+            int startTime = Math.max(time, cur.arrival);
+            cur.completion = startTime + cur.burst;
+            cur.tat = cur.completion - cur.arrival;
+            cur.waiting = cur.tat - cur.burst;
+            if (cur.waiting < 0) cur.waiting = 0;
+            cur.finished = true;
+            time = cur.completion;
+            completed++;
+        }
+
+        // restore original order by id for output
+        list.sort(Comparator.comparingInt(p -> p.id));
+    }
+
+    // Preemptive priority scheduling (check every time unit)
+    static void preemptive(List<Proc> list) {
+        int n = list.size();
+        int completed = 0;
+
+        // Sort by arrival to find earliest arrival
+        list.sort(Comparator.comparingInt(p -> p.arrival));
+        int time = 0;
+        if (n > 0 && list.get(0).arrival > 0) time = list.get(0).arrival;
+
+        while (completed < n) {
+            int idx = -1;
+            int bestPriority = Integer.MAX_VALUE;
+
+            // choose ready process with highest priority (lowest number)
+            for (int i = 0; i < n; i++) {
+                Proc p = list.get(i);
+                if (!p.finished && p.arrival <= time && p.rem > 0) {
+                    if (p.priority < bestPriority) {
+                        bestPriority = p.priority;
+                        idx = i;
+                    } else if (p.priority == bestPriority) {
+                        // tie-breaker: earlier arrival then lower id
+                        Proc best = (idx == -1) ? null : list.get(idx);
+                        if (best == null || p.arrival < best.arrival ||
+                            (p.arrival == best.arrival && p.id < best.id)) {
+                            idx = i;
+                        }
+                    }
+                }
+            }
+
+            if (idx == -1) {
+                // no ready process -> jump to next arrival if any
+                int nextArrival = Integer.MAX_VALUE;
+                for (Proc p : list) if (!p.finished && p.arrival < nextArrival) nextArrival = p.arrival;
+                if (nextArrival == Integer.MAX_VALUE) break;
+                time = Math.max(time + 1, nextArrival); // advance time
+                continue;
+            }
+
+            // execute one time unit (preemptive)
+            Proc cur = list.get(idx);
+            cur.rem--;
+            time++;
+
+            if (cur.rem == 0) {
+                cur.finished = true;
+                completed++;
+                cur.completion = time;
+                cur.tat = cur.completion - cur.arrival;
+                cur.waiting = cur.tat - cur.burst;
+                if (cur.waiting < 0) cur.waiting = 0;
+            }
+        }
+
+        // restore original order by id for output
+        list.sort(Comparator.comparingInt(p -> p.id));
+    }
+
+    static void printResult(List<Proc> list) {
+        System.out.println("\n\nProcess\tArrival\tBurst\tPriority\tCompletion\tWaiting\tTurnaround");
+        double sumW = 0, sumT = 0;
+        for (Proc p : list) {
+            System.out.printf("P[%d]\t%6d\t%5d\t%8d\t%10d\t%7d\t%10d\n",
+                    p.id, p.arrival, p.burst, p.priority, p.completion, p.waiting, p.tat);
+            sumW += p.waiting;
+            sumT += p.tat;
+        }
+        int n = Math.max(1, list.size());
+        System.out.printf("\nAverage waiting time = %.2f\n", sumW / n);
+        System.out.printf("Average turnaround time = %.2f\n", sumT / n);
+    }
+
+    // small helper to safely read integers (avoids stray newline issues)
+    static int readInt() {
+        while (!sc.hasNextInt()) {
+            sc.next(); // discard
+            System.out.print("Please enter a valid integer: ");
+        }
+        return sc.nextInt();
+    }
+}
