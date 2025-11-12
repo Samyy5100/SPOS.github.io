@@ -1,0 +1,35 @@
+FIRST AND BEST FIT:-
+
+import java.util.Scanner;
+
+public class MemoryAllocation 
+{
+    public static void main(String[] args) 
+    {
+        Scanner sc = new Scanner(System.in);
+
+        // Input number of memory blocks
+        System.out.print("Enter number of memory blocks: ");
+        int nb = sc.nextInt();
+        int[] blockSize = new int[nb];
+        System.out.println("Enter sizes of memory blocks:");
+        for (int i = 0; i < nb; i++) {
+            blockSize[i] = sc.nextInt();
+        }
+
+        // Input number of processes
+        System.out.print("Enter number of processes: ");
+        int np = sc.nextInt();
+        int[] processSize = new int[np];
+        System.out.println("Enter sizes of processes:");
+        for (int i = 0; i < np; i++) {
+            processSize[i] = sc.nextInt();
+        }
+
+        // Choose algorithm
+        System.out.println("\nChoose Allocation Method:");
+        System.out.println("1. First Fit");
+        System.out.println("2. Best Fit");
+        System.out.print("Enter your choice (1 or 2): ");
+    }
+}
